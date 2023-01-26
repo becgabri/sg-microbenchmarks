@@ -453,6 +453,7 @@ def cli_args():
         help="Total number of XOR gates in the circuit.",
     )
     parser.add_argument("--proto", choices=["mal", "semihon"], default="mal")
+    parser.add_argument("--field_size", type=int, default=18, help="log (base 2) of the field size")
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--stat_type", choices=["numops", "time"], default="time")
     return parser.parse_args()
@@ -461,11 +462,13 @@ def cli_args():
 if __name__ == "__main__":
     args = cli_args()
 
+    field_size = args.field_size
+
     params = Params(
         200,  # n
         50,  # t
         50,  # l
-        18,  # F
+        field_size,  # F
         14,  # binsup_dim
         246,  # lpn_key_len
         721,  # lep_ctx_len
@@ -476,7 +479,12 @@ if __name__ == "__main__":
 
     print_stat = print_stat_numops
     if args.stat_type == "time":
-        print_stat = get_print_stat_time(args.threads, 1.6e-10, 7.68e-9)
+        if field_size == 18:
+            print_stat = get_print_stat_time(args.threads, 1.6e-10, 7.68e-9) # GF(2^18)
+        elif field_size == 19:
+            print_stat = get_print_stat_time(args.threads, 1.6e-10, 8.80e-9) # GF(2^19)
+        else:
+            raise Exception("Timing statistics supported only for fields of size 18 and 19 bits.")
 
     if args.proto == "mal":
         ec23(params, args.num_inp, args.num_and, args.num_xor, print_stat)
